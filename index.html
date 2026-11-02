@@ -1,400 +1,353 @@
 <!DOCTYPE html>
-<html lang="tl">
+<html lang="fil">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Buklod Online - Talaan ng Benta</title>
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-
-  <!-- FIREBASE SDKs -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { 
-      getFirestore, 
-      collection, 
-      onSnapshot, 
-      query, 
-      orderBy 
-    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyDS6vkoJAQUEpqJhTrSaG6-NZTYuA43FmU",
-      authDomain: "buklod-online.firebaseapp.com",
-      projectId: "buklod-online",
-      storageBucket: "buklod-online.firebasestorage.app",
-      messagingSenderId: "916118497940",
-      appId: "1:916118497940:web:c0bfbb9c38f26b7520a281",
-      measurementId: "G-JJF1L8K7RM"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    window.db = db;
-    window.firestoreTools = {
-      collection, onSnapshot, query, orderBy
-    };
-  </script>
-
-  <style>
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Talaan ng Benta at Imbentaryo (Viewer)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-mono { font-family: 'IBM Plex Mono', monospace; }
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; padding: 0 !important; }
+        }
+    </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans text-base">
+<body class="bg-white text-gray-900 min-h-screen">
 
-  <!-- HEADER (WALANG ADMIN LOCK/BUTTON) -->
-  <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-30 shadow-md">
-    <div class="max-w-3xl mx-auto px-4 py-3.5 flex items-center justify-between">
-      <div class="flex items-center gap-3.5">
-        <div class="w-12 h-12 rounded-xl overflow-hidden flex items-center justify-center bg-slate-900 border border-slate-700/60 shadow-lg p-0.5">
-          <img src="https://res.cloudinary.com/sklsysfy/image/upload/v1793538521/bwmmgzvzddh9nfhv7fpi.png" alt="Buklod Online Logo" class="w-full h-full object-contain object-center">
-        </div>
-        <div>
-          <h1 class="text-xl font-bold tracking-wide">Buklod Online</h1>
-          <p class="text-sm text-slate-300">Talaan ng Benta at Gastos</p>
-        </div>
-      </div>
-    </div>
+    <div id="root" class="w-full min-h-screen"></div>
 
-    <!-- TAB NAVIGATION -->
-    <div class="max-w-3xl mx-auto px-4 mt-2 overflow-x-auto no-scrollbar flex gap-2 border-t border-slate-700/50 pt-2.5 pb-2 text-sm font-bold">
-      <button onclick="switchTab('raw')" id="tab-raw" class="tab-btn bg-emerald-600 text-white px-4 py-2.5 rounded-xl whitespace-nowrap shadow-sm">Entry</button>
-      <button onclick="switchTab('daily')" id="tab-daily" class="tab-btn bg-slate-700 text-slate-200 hover:bg-slate-600 px-4 py-2.5 rounded-xl whitespace-nowrap">Daily</button>
-      <button onclick="switchTab('weekly')" id="tab-weekly" class="tab-btn bg-slate-700 text-slate-200 hover:bg-slate-600 px-4 py-2.5 rounded-xl whitespace-nowrap">Weekly</button>
-      <button onclick="switchTab('monthly')" id="tab-monthly" class="tab-btn bg-slate-700 text-slate-200 hover:bg-slate-600 px-4 py-2.5 rounded-xl whitespace-nowrap">Monthly</button>
-      <button onclick="switchTab('yearly')" id="tab-yearly" class="tab-btn bg-slate-700 text-slate-200 hover:bg-slate-600 px-4 py-2.5 rounded-xl whitespace-nowrap">Yearly</button>
-    </div>
-  </header>
+    <!-- Firebase SDK Compat -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
-  <!-- MAIN CONTENT CONTAINER -->
-  <main class="max-w-3xl mx-auto w-full px-4 py-5 flex-1 space-y-5">
+    <!-- React at Babel -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- SUMMARY CARDS -->
-    <div class="grid grid-cols-3 gap-2.5">
-      <div class="bg-slate-800 border border-slate-700/80 rounded-2xl p-3.5 shadow-sm">
-        <div class="flex items-center justify-between mb-1.5">
-          <span class="text-xs font-semibold text-slate-300">Total Benta</span>
-          <i data-lucide="arrow-down-right" class="w-4 h-4 text-emerald-400"></i>
-        </div>
-        <p id="totalSales" class="text-base sm:text-xl font-black text-emerald-400">₱0.00</p>
-      </div>
+    <script type="text/babel">
+        const firebaseConfig = {
+            apiKey: "AIzaSyDS6vkoJAQUEpqJhTrSaG6-NZTYuA43FmU",
+            authDomain: "buklod-online.firebaseapp.com",
+            projectId: "buklod-online",
+            storageBucket: "buklod-online.firebasestorage.app",
+            messagingSenderId: "916118497940",
+            appId: "1:916118497940:web:c0bfbb9c38f26b7520a281"
+        };
 
-      <div class="bg-slate-800 border border-slate-700/80 rounded-2xl p-3.5 shadow-sm">
-        <div class="flex items-center justify-between mb-1.5">
-          <span class="text-xs font-semibold text-slate-300">Total Gastos</span>
-          <i data-lucide="arrow-up-right" class="w-4 h-4 text-rose-400"></i>
-        </div>
-        <p id="totalExpenses" class="text-base sm:text-xl font-black text-rose-400">₱0.00</p>
-      </div>
-
-      <div class="bg-slate-800 border border-slate-700/80 rounded-2xl p-3.5 shadow-sm">
-        <div class="flex items-center justify-between mb-1.5">
-          <span class="text-xs font-semibold text-slate-300">Tubo (Net)</span>
-          <i data-lucide="wallet" class="w-4 h-4 text-amber-400"></i>
-        </div>
-        <p id="netIncome" class="text-base sm:text-xl font-black text-amber-400">₱0.00</p>
-      </div>
-    </div>
-
-    <!-- LIST HEADER -->
-    <div class="flex items-center justify-between pt-2">
-      <h2 id="viewTitle" class="text-base font-bold text-slate-200 flex items-center gap-2">
-        <i data-lucide="list" class="w-5 h-5 text-emerald-500"></i>
-        Talaan ng Benta
-      </h2>
-      <span id="itemCount" class="text-sm bg-slate-800 border border-slate-700 text-slate-300 px-3 py-1 rounded-full font-semibold">0 entries</span>
-    </div>
-
-    <!-- SIMPLE LIST CONTAINER -->
-    <div id="ledgerList" class="space-y-3">
-      <div class="text-center py-12 text-slate-400 text-base">
-        Kumokonekta sa Firebase Firestore...
-      </div>
-    </div>
-  </main>
-
-  <!-- JAVASCRIPT LOGIC (VIEW-ONLY) -->
-  <script>
-    let currentTab = 'raw';
-    let rawLedgerData = [];
-
-    const monthNamesTagalog = ["Enero", "Pebryero", "Marso", "Abril", "Mayo", "Hunyo", "Hulyo", "Agosto", "Setyembre", "Oktubre", "Nobyembre", "Disyembre"];
-
-    window.addEventListener('DOMContentLoaded', () => {
-      lucide.createIcons();
-      setupFirestoreListener();
-    });
-
-    function setupFirestoreListener() {
-      const interval = setInterval(() => {
-        if (window.db && window.firestoreTools) {
-          clearInterval(interval);
-          const { collection, onSnapshot, query, orderBy } = window.firestoreTools;
-          const q = query(collection(window.db, "talaan_entries"), orderBy("date", "desc"));
-          
-          onSnapshot(q, (snapshot) => {
-            rawLedgerData = [];
-            snapshot.forEach((doc) => {
-              rawLedgerData.push({ id: doc.id, ...doc.data() });
-            });
-            renderLedgerList();
-          }, (error) => {
-            console.log("Firestore error:", error);
-            renderLedgerList();
-          });
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
         }
-      }, 200);
-    }
+        const db = firebase.firestore();
 
-    function switchTab(tab) {
-      currentTab = tab;
-      document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('bg-emerald-600', 'text-white');
-        btn.classList.add('bg-slate-700', 'text-slate-200');
-      });
-      document.getElementById(`tab-${tab}`).classList.remove('bg-slate-700', 'text-slate-200');
-      document.getElementById(`tab-${tab}`).classList.add('bg-emerald-600', 'text-white');
-      renderLedgerList();
-    }
+        const MONTH_NAMES = [
+            "Enero", "Pebrero", "Marso", "Abril", "Mayyo", "Hunyo",
+            "Hulyo", "Agosto", "Setyembre", "Oktubre", "Nobyembre", "Disyembre"
+        ];
 
-    function formatDateReadable(dateStr) {
-      const d = normalizeDate(dateStr);
-      if (isNaN(d.getTime())) return dateStr;
-      const m = monthNamesTagalog[d.getMonth()];
-      return `${m} ${d.getDate()}, ${d.getFullYear()}`;
-    }
+        function App() {
+            const today = new Date();
+            const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+            const currentDate = today.toISOString().split('T')[0];
+            
+            const [activeTab, setActiveTab] = React.useState('talaan');
+            const [selectedMonth, setSelectedMonth] = React.useState(currentMonth);
+            const [selectedYear, setSelectedYear] = React.useState(today.getFullYear().toString());
+            
+            const [rows, setRows] = React.useState(() => 
+                Array.from({ length: 31 }, () => ({ deskripsyon: '', halaga: '' }))
+            );
 
-    function normalizeDate(dateStr) {
-      if (!dateStr) return new Date();
-      const cleanStr = dateStr.includes('-') && dateStr.length === 10 ? dateStr + "T00:00:00" : dateStr;
-      const d = new Date(cleanStr);
-      if (isNaN(d.getTime())) return new Date();
-      return d;
-    }
+            const [viewDate, setViewDate] = React.useState(currentDate);
+            const [yearlyData, setYearlyData] = React.useState(Array(12).fill(0));
+            const [syncStatus, setSyncStatus] = React.useState('Kumokonekta...');
 
-    function getCleanWeekRange(dateStr) {
-      const d = normalizeDate(dateStr);
-      const day = d.getDay();
-      const diffToMonday = d.getDate() - day + (day === 0 ? -6 : 1);
-      const monday = new Date(new Date(d).setDate(diffToMonday));
-      const sunday = new Date(monday);
-      sunday.setDate(monday.getDate() + 6);
+            React.useEffect(() => {
+                const docRef = db.collection('monthly_sales').doc(selectedMonth);
+                const unsubscribe = docRef.onSnapshot((doc) => {
+                    if (doc.exists) {
+                        const data = doc.data();
+                        if (data.rows) setRows(data.rows);
+                    } else {
+                        setRows(Array.from({ length: 31 }, () => ({ deskripsyon: '', halaga: '' })));
+                    }
+                    setSyncStatus('Live Sync (Viewer Mode)');
+                }, (err) => {
+                    setSyncStatus('Error sa Koneksyon');
+                });
+                return () => unsubscribe();
+            }, [selectedMonth]);
 
-      const mStart = monthNamesTagalog[monday.getMonth()];
-      const mEnd = monthNamesTagalog[sunday.getMonth()];
-      const year = sunday.getFullYear();
+            React.useEffect(() => {
+                const unsubscribe = db.collection('monthly_sales')
+                    .onSnapshot((snapshot) => {
+                        const totals = Array(12).fill(0);
+                        snapshot.forEach((doc) => {
+                            const docId = doc.id; 
+                            if (docId.startsWith(selectedYear)) {
+                                const monthIndex = parseInt(docId.split('-')[1], 10) - 1;
+                                const data = doc.data();
+                                if (data && data.rows && monthIndex >= 0 && monthIndex < 12) {
+                                    const monthTotal = data.rows.reduce((sum, r) => {
+                                        const clean = Number(String(r.halaga || '').replace(/[^0-9.-]/g, ''));
+                                        return sum + (isNaN(clean) ? 0 : clean);
+                                    }, 0);
+                                    totals[monthIndex] = monthTotal;
+                                }
+                            }
+                        });
+                        setYearlyData(totals);
+                    });
+                return () => unsubscribe();
+            }, [selectedYear]);
 
-      if (monday.getMonth() === sunday.getMonth()) {
-        return `${mStart} ${monday.getDate()}-${sunday.getDate()}, ${year}`;
-      } else {
-        return `${mStart} ${monday.getDate()} - ${mEnd} ${sunday.getDate()}, ${year}`;
-      }
-    }
+            const formatPHP = (val) => {
+                if (isNaN(val) || val === '' || val === null) return '₱0';
+                return new Intl.NumberFormat('fil-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 0 }).format(val);
+            };
 
-    function isExpenseItem(item) {
-      const typeStr = (item.type || '').toLowerCase();
-      const rawAmt = parseFloat(item.amount) || 0;
-      return typeStr === 'gastos' || 
-             typeStr.includes('gastos') || 
-             typeStr.includes('expense') || 
-             typeStr.includes('expenses') || 
-             typeStr.includes('bawas') || 
-             typeStr.includes('labas') || 
-             typeStr.includes('out') || 
-             typeStr.includes('-') ||
-             rawAmt < 0;
-    }
+            const parseNum = (val) => {
+                if (!val) return null;
+                const clean = Number(String(val).replace(/[^0-9.-]/g, ''));
+                return isNaN(clean) ? null : clean;
+            };
 
-    function renderLedgerList() {
-      const container = document.getElementById('ledgerList');
-      let displayItems = [];
-      let grandTotalSales = 0;
-      let grandTotalExpenses = 0;
+            const processedRows = React.useMemo(() => {
+                let runningTotal = 0;
+                return rows.map((row) => {
+                    const parsed = parseNum(row.halaga);
+                    if (parsed !== null) runningTotal += parsed;
+                    return { ...row, parsed, balanse: runningTotal };
+                });
+            }, [rows]);
 
-      if (currentTab === 'raw') {
-        displayItems = rawLedgerData.map(item => {
-          const isExp = isExpenseItem(item);
-          return {
-            title: item.description || 'Item',
-            sub: `${formatDateReadable(item.date)} ${item.time ? '• ' + item.time : ''}`,
-            type: isExp ? 'gastos' : 'benta',
-            amount: Math.abs(parseFloat(item.amount) || 0),
-            id: item.id
-          };
-        });
+            // Pagsasayos para sa pagtingin ng partikular na araw sa Daily View
+            const currentDayStructuredItems = React.useMemo(() => {
+                if (!viewDate) return [];
+                const parts = viewDate.split('-');
+                if (parts.length < 3) return [];
+                const d = parseInt(parts[2], 10);
+                const dayIndex = d - 1;
 
-      } else if (currentTab === 'daily') {
-        const groups = {};
-        rawLedgerData.forEach(item => {
-          const dKey = item.date;
-          if (!dKey) return;
-          if (!groups[dKey]) groups[dKey] = { date: dKey, sales: 0, expenses: 0 };
-          const amt = Math.abs(parseFloat(item.amount) || 0);
-          if (isExpenseItem(item)) {
-            groups[dKey].expenses += amt;
-          } else {
-            groups[dKey].sales += amt;
-          }
-        });
+                if (rows[dayIndex] && rows[dayIndex].deskripsyon) {
+                    return rows[dayIndex].deskripsyon.split(',').map(item => {
+                        const raw = item.trim();
+                        if (raw.startsWith('[Bantay:')) return null;
+                        const match = raw.match(/^(.*?)\s*\((\d+)\)$/);
+                        if (match) {
+                            return { name: match[1].trim(), price: match[2].trim() };
+                        }
+                        return null;
+                    }).filter(i => i !== null);
+                }
+                return [];
+            }, [viewDate, rows]);
 
-        displayItems = Object.keys(groups).sort().reverse().map(k => ({
-          title: formatDateReadable(groups[k].date),
-          sub: 'Kabuuang Araw',
-          sales: groups[k].sales,
-          expenses: groups[k].expenses,
-          net: groups[k].sales - groups[k].expenses
-        }));
+            const currentDayBantay = React.useMemo(() => {
+                if (!viewDate) return '';
+                const parts = viewDate.split('-');
+                if (parts.length < 3) return '';
+                const d = parseInt(parts[2], 10);
+                const dayIndex = d - 1;
 
-      } else if (currentTab === 'weekly') {
-        const groups = {};
-        rawLedgerData.forEach(item => {
-          const wLabel = getCleanWeekRange(item.date);
-          if (!wLabel) return;
-          if (!groups[wLabel]) groups[wLabel] = { label: wLabel, sales: 0, expenses: 0 };
-          const amt = Math.abs(parseFloat(item.amount) || 0);
-          if (isExpenseItem(item)) {
-            groups[wLabel].expenses += amt;
-          } else {
-            groups[wLabel].sales += amt;
-          }
-        });
+                if (rows[dayIndex] && rows[dayIndex].deskripsyon) {
+                    const found = rows[dayIndex].deskripsyon.split(',').find(i => i.trim().startsWith('[Bantay:'));
+                    if (found) {
+                        const mMatch = found.match(/\[Bantay:\s*(.*?)\]/);
+                        if (mMatch) return mMatch[1];
+                    }
+                }
+                return '';
+            }, [viewDate, rows]);
 
-        displayItems = Object.keys(groups).sort().reverse().map(k => ({
-          title: groups[k].label,
-          sub: 'Buod ng Linggo',
-          sales: groups[k].sales,
-          expenses: groups[k].expenses,
-          net: groups[k].sales - groups[k].expenses
-        }));
+            const totalBenta = React.useMemo(() => {
+                return processedRows.reduce((acc, row) => acc + (row.parsed || 0), 0);
+            }, [processedRows]);
 
-      } else if (currentTab === 'monthly') {
-        const groups = {};
-        rawLedgerData.forEach(item => {
-          const d = normalizeDate(item.date);
-          const y = d.getFullYear();
-          const m = d.getMonth();
-          const mKey = `${y}-${String(m + 1).padStart(2, '0')}`;
-          const mName = monthNamesTagalog[m] || '';
-          const label = `${mName} ${y}`;
+            const grandTotalYearly = React.useMemo(() => {
+                return yearlyData.reduce((acc, val) => acc + val, 0);
+            }, [yearlyData]);
 
-          if (!groups[mKey]) groups[mKey] = { label, sales: 0, expenses: 0 };
-          const amt = Math.abs(parseFloat(item.amount) || 0);
-          if (isExpenseItem(item)) {
-            groups[mKey].expenses += amt;
-          } else {
-            groups[mKey].sales += amt;
-          }
-        });
+            const finalBalanse = processedRows.length ? processedRows[processedRows.length - 1].balanse : 0;
 
-        displayItems = Object.keys(groups).sort().reverse().map(k => ({
-          title: groups[k].label,
-          sub: 'Buod ng Buwan',
-          sales: groups[k].sales,
-          expenses: groups[k].expenses,
-          net: groups[k].sales - groups[k].expenses
-        }));
+            const exportCSV = () => {
+                let csv = `TALAAN NG BENTA (MONTHLY VIEWER),${selectedMonth}\nPetsa,Deskripsyon,Halaga,Balanse\n`;
+                processedRows.forEach((r, i) => {
+                    csv += `${i + 1},"${(r.deskripsyon || '').replace(/"/g, '""')}",${r.parsed || ''},${r.balanse}\n`;
+                });
+                csv += `TOTAL,,${totalBenta},${finalBalanse}`;
 
-      } else if (currentTab === 'yearly') {
-        const groups = {};
-        rawLedgerData.forEach(item => {
-          const d = normalizeDate(item.date);
-          const yKey = d.getFullYear().toString();
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `talaan-benta-viewer-${selectedMonth}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+            };
 
-          if (!groups[yKey]) groups[yKey] = { year: yKey, sales: 0, expenses: 0 };
-          const amt = Math.abs(parseFloat(item.amount) || 0);
-          if (isExpenseItem(item)) {
-            groups[yKey].expenses += amt;
-          } else {
-            groups[yKey].sales += amt;
-          }
-        });
+            return (
+                <div className="w-full min-h-screen bg-white p-2 sm:p-4 flex flex-col">
+                    {/* Navigation Bar para sa Viewer */}
+                    <div className="no-print flex justify-between items-center mb-3 pb-2 border-b border-gray-300">
+                        <div className="flex gap-1.5 sm:gap-2">
+                            <button onClick={() => setActiveTab('talaan')} className={`px-2.5 sm:px-3 py-1.5 font-bold text-[11px] sm:text-xs uppercase border border-black transition ${activeTab === 'talaan' ? 'bg-black text-white' : 'bg-white hover:bg-gray-100'}`}>Talaan (Monthly)</button>
+                            <button onClick={() => setActiveTab('araw')} className={`px-2.5 sm:px-3 py-1.5 font-bold text-[11px] sm:text-xs uppercase border border-black transition ${activeTab === 'araw' ? 'bg-black text-white' : 'bg-white hover:bg-gray-100'}`}>Daily (Sales)</button>
+                            <button onClick={() => setActiveTab('yearly')} className={`px-2.5 sm:px-3 py-1.5 font-bold text-[11px] sm:text-xs uppercase border border-black transition ${activeTab === 'yearly' ? 'bg-black text-white' : 'bg-white hover:bg-gray-100'}`}>Yearly (Record)</button>
+                        </div>
+                        <span className="text-[10px] sm:text-[11px] font-mono bg-green-50 text-green-800 border border-green-300 px-2 py-1 rounded font-bold">{syncStatus}</span>
+                    </div>
 
-        displayItems = Object.keys(groups).sort().reverse().map(k => ({
-          title: `Taon ${groups[k].year}`,
-          sub: 'Buod ng Taon',
-          sales: groups[k].sales,
-          expenses: groups[k].expenses,
-          net: groups[k].sales - groups[k].expenses
-        }));
-      }
+                    {/* TAB 1: Daily Sales (READ-ONLY VIEW) */}
+                    {activeTab === 'araw' && (
+                        <div className="flex-1 flex flex-col gap-4">
+                            <div className="pb-3 border-b-2 border-black flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                                <div>
+                                    <h1 className="text-lg sm:text-2xl font-bold uppercase tracking-wide">Daily (Sales)</h1>
+                                    <p className="text-[11px] text-gray-600">Pumili ng petsa para makita ang mga paninda at bantay (Viewer Mode).</p>
+                                </div>
+                                <div>
+                                    <input type="date" value={viewDate} onChange={(e) => setViewDate(e.target.value)} className="border border-black px-3 py-1.5 text-sm font-mono bg-white outline-none" />
+                                </div>
+                            </div>
 
-      // Calculate Summary Card totals
-      rawLedgerData.forEach(item => {
-        const amt = Math.abs(parseFloat(item.amount) || 0);
-        if (isExpenseItem(item)) {
-          grandTotalExpenses += amt;
-        } else {
-          grandTotalSales += amt;
+                            <div className="border-2 border-black p-3 bg-gray-50 flex flex-col gap-2">
+                                <h2 className="font-bold text-xs uppercase tracking-wide border-b border-black pb-1.5 flex justify-between items-center">
+                                    <span>📋 Listahan ({viewDate}) {currentDayBantay ? `- Bantay: ${currentDayBantay}` : '- Walang nakatalagang bantay'}</span>
+                                </h2>
+                                <div className="bg-white border border-black overflow-hidden">
+                                    <div className="flex bg-black text-white text-[10px] font-bold uppercase px-3 py-1.5">
+                                        <span className="flex-1">Paninda</span>
+                                        <span className="w-24 text-right font-mono">Halaga (₱)</span>
+                                    </div>
+                                    <div className="flex flex-col min-h-[120px]">
+                                        {currentDayStructuredItems.length > 0 ? (
+                                            currentDayStructuredItems.map((item, idx) => (
+                                                <div key={idx} className="flex justify-between items-center text-xs font-mono border-b border-gray-100 px-3 py-2">
+                                                    <span className="flex-1 font-medium text-gray-900">{item.name}</span>
+                                                    <span className="w-24 text-right font-bold text-black">₱{item.price}</span>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="p-4 text-xs text-gray-400 italic">Wala pang nakatalang paninda sa petsang ito.</div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* TAB 2: TALAAN MONTHLY (READ-ONLY TABLE) */}
+                    {activeTab === 'talaan' && (
+                        <div className="flex-1 flex flex-col">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-3 border-b-2 border-black gap-2">
+                                <div>
+                                    <h1 className="text-lg sm:text-2xl font-bold uppercase tracking-wide">Talaan ng Benta (Monthly Viewer)</h1>
+                                    <p className="text-[11px] text-gray-600">Lahat ng tala ay awtomatikong updated mula sa Bulacan (Read-Only).</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <label className="text-xs font-bold uppercase">Buwan:</label>
+                                    <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="border border-black px-2 py-1 text-xs font-mono bg-white outline-none w-[160px]" />
+                                </div>
+                            </div>
+
+                            <div className="no-print py-2 flex flex-wrap gap-2 justify-between items-center border-b border-dashed border-gray-300">
+                                <div className="flex gap-1.5">
+                                    <button onClick={exportCSV} className="bg-black text-white text-[11px] font-bold uppercase px-3 py-1.5 hover:bg-gray-800">I-export CSV</button>
+                                    <button onClick={() => window.print()} className="border border-black text-[11px] font-bold uppercase px-3 py-1.5 hover:bg-gray-100">I-print</button>
+                                </div>
+                                <div className="text-xs sm:text-sm font-bold font-mono">Kabuuang Benta: {formatPHP(totalBenta)}</div>
+                            </div>
+
+                            <div className="overflow-x-auto mt-2 flex-1">
+                                <table className="w-full border-collapse border border-black text-xs sm:text-sm table-fixed">
+                                    <thead className="sticky top-0 bg-black text-white z-10">
+                                        <tr>
+                                            <th className="border border-black p-2 text-center w-[8%]">Petsa</th>
+                                            <th className="border border-black p-2 text-left w-[57%]">Deskripsyon / Bantay</th>
+                                            <th className="border border-black p-2 text-right w-[15%]">Halaga (PHP)</th>
+                                            <th className="border border-black p-2 text-right w-[22%]">Balanse</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {processedRows.map((row, idx) => (
+                                            <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                                <td className="border border-black p-2 text-center font-mono font-medium">{idx + 1}</td>
+                                                <td className="border border-black p-2 font-mono text-gray-800 truncate select-all">{row.deskripsyon || ''}</td>
+                                                <td className="border border-black p-2 text-right font-mono font-medium">{row.halaga ? formatPHP(Number(row.halaga)) : '₱0'}</td>
+                                                <td className="border border-black p-2 text-right font-mono font-bold">{formatPHP(row.balanse)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr className="bg-black text-white font-bold sticky bottom-0">
+                                            <td colSpan="2" className="border border-black p-2 uppercase">Kabuuan</td>
+                                            <td className="border border-black p-2 text-right font-mono">{formatPHP(totalBenta)}</td>
+                                            <td className="border border-black p-2 text-right font-mono">{formatPHP(finalBalanse)}</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* TAB 3: YEARLY SUMMARY (READ-ONLY) */}
+                    {activeTab === 'yearly' && (
+                        <div className="flex-1 flex flex-col">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-3 border-b-2 border-black gap-2">
+                                <div>
+                                    <h1 className="text-lg sm:text-2xl font-bold uppercase tracking-wide">Taunang Buod (Yearly Summary)</h1>
+                                    <p className="text-[11px] text-gray-600">Pangkalahatang ulat sa buong taon (Read-Only).</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <label className="text-xs font-bold uppercase">Taon:</label>
+                                    <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className="border border-black px-2 py-1 text-xs font-mono bg-white outline-none">
+                                        {[2024, 2025, 2026, 2027, 2028, 2029, 2030].map((y) => (
+                                            <option key={y} value={y}>{y}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="my-4 p-4 border-2 border-black bg-yellow-50 flex justify-between items-center">
+                                <span className="font-bold text-xs uppercase">Kabuuan para sa Taong {selectedYear}:</span>
+                                <span className="font-mono font-bold text-lg">{formatPHP(grandTotalYearly)}</span>
+                            </div>
+                            <div className="overflow-x-auto flex-1">
+                                <table className="w-full border-collapse border border-black text-xs sm:text-sm">
+                                    <thead>
+                                        <tr className="bg-black text-white">
+                                            <th className="border border-black p-2 text-center w-16">#</th>
+                                            <th className="border border-black p-2 text-left">Buwan</th>
+                                            <th className="border border-black p-2 text-right">Kabuuang Benta (PHP)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {MONTH_NAMES.map((monthName, idx) => (
+                                            <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                                <th className="border border-black p-2 text-center font-mono font-medium">{idx + 1}</th>
+                                                <td className="border border-black p-2 font-medium">{monthName}</td>
+                                                <td className="border border-black p-2 text-right font-mono font-bold">{formatPHP(yearlyData[idx] || 0)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr className="bg-black text-white font-bold">
+                                            <td colSpan="2" className="border border-black p-3 uppercase tracking-wider">Kabuuan ng Taon</td>
+                                            <td className="border border-black p-3 text-right font-mono">{formatPHP(grandTotalYearly)}</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
         }
-      });
 
-      document.getElementById('itemCount').textContent = `${displayItems.length} entries`;
-
-      if (displayItems.length === 0) {
-        container.innerHTML = `
-          <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-8 text-center text-slate-400">
-            <i data-lucide="inbox" class="w-10 h-10 mx-auto mb-2 opacity-50"></i>
-            <p class="text-base font-semibold">Walang nahanap na tala.</p>
-          </div>
-        `;
-        updateSummary(0, 0);
-        return;
-      }
-
-      if (currentTab === 'raw') {
-        container.innerHTML = displayItems.map(item => `
-          <div class="bg-slate-800 border border-slate-700/80 rounded-2xl px-4 py-4 flex items-center justify-between shadow-sm">
-            <div class="flex items-center gap-3.5">
-              <div class="p-2.5 rounded-xl ${item.type === 'benta' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}">
-                <i data-lucide="${item.type === 'benta' ? 'trending-up' : 'trending-down'}" class="w-5 h-5"></i>
-              </div>
-              <div>
-                <h3 class="text-sm sm:text-base font-bold text-slate-100">${escapeHtml(item.title)}</h3>
-                <p class="text-xs sm:text-sm text-slate-300">${item.sub}</p>
-              </div>
-            </div>
-            <div>
-              <span class="text-base sm:text-lg font-black ${item.type === 'benta' ? 'text-emerald-400' : 'text-rose-400'}">
-                ${item.type === 'benta' ? '+' : '-'}₱${item.amount.toLocaleString('en-US', {minimumFractionDigits: 2})}
-              </span>
-            </div>
-          </div>
-        `).join('');
-      } else {
-        container.innerHTML = displayItems.map(item => `
-          <div class="bg-slate-800 border border-slate-700/80 rounded-2xl px-4 py-4 flex items-center justify-between shadow-sm">
-            <div>
-              <h3 class="text-sm sm:text-base font-bold text-slate-100">${escapeHtml(item.title)}</h3>
-              <p class="text-xs sm:text-sm text-slate-300">${item.sub}</p>
-            </div>
-            <div class="text-right">
-              <div class="text-xs sm:text-sm text-emerald-400 font-semibold">Benta: ₱${item.sales.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
-              ${item.expenses > 0 ? `<div class="text-xs sm:text-sm text-rose-400 font-semibold">Gastos: -₱${item.expenses.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>` : ''}
-              <div class="text-base sm:text-lg font-black text-amber-400 mt-1">
-                Tubo: ₱${item.net.toLocaleString('en-US', {minimumFractionDigits: 2})}
-              </div>
-            </div>
-          </div>
-        `).join('');
-      }
-
-      updateSummary(grandTotalSales, grandTotalExpenses);
-      lucide.createIcons();
-    }
-
-    function updateSummary(sales, expenses) {
-      document.getElementById('totalSales').textContent = `₱${sales.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
-      document.getElementById('totalExpenses').textContent = `₱${expenses.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
-      document.getElementById('netIncome').textContent = `₱${(sales - expenses).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
-    }
-
-    function escapeHtml(str) {
-      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-    }
-  </script>
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
 </body>
 </html>
