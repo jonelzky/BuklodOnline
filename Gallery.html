@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="tl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grupo Gallery - View Only</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Inter', sans-serif; background-color: #f8fafc; } </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col justify-between">
+    <header class="bg-indigo-600 text-white shadow-md sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white/20 p-2 rounded-lg text-xl"><i class="fa-solid fa-images"></i></div>
+                <div>
+                    <h1 class="text-xl font-bold leading-tight">Grupo Gallery</h1>
+                    <p class="text-xs text-indigo-200"> • Buklod Buli SLPA 2026</p>
+                </div>
+            </div>
+<a href="https://jonelzky.github.io/BuklodOnline/" class="bg-white/20 text-[11px] px-3 py-1.5 rounded-lg font-medium hover:bg-white/30">🔙 Buklod Online</a>
+        </div>
+    </header>
+    <main class="max-w-6xl mx-auto px-4 py-6 flex-grow w-full">
+        <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center mb-6 gap-3">
+            <div class="flex bg-slate-200 p-1 rounded-xl text-xs sm:text-sm font-medium w-full sm:w-auto">
+                <button onclick="filterMedia('all')" id="btnFilterAll" class="filter-btn flex-1 sm:flex-initial px-4 py-1.5 rounded-lg bg-white shadow-sm text-indigo-600 font-semibold transition">Lahat</button>
+                <button onclick="filterMedia('image')" id="btnFilterImage" class="filter-btn flex-1 sm:flex-initial px-4 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">Mga Litrato</button>
+                <button onclick="filterMedia('video')" id="btnFilterVideo" class="filter-btn flex-1 sm:flex-initial px-4 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">Mga Video</button>
+            </div>
+            <p class="text-[11px] text-slate-500 text-center sm:text-right">I-tap ang picture para i-preview. Pwede mag-download.</p>
+        </div>
+        <button onclick="toggleView()" id="viewBtn" class="mb-4 w-full bg-white border border-slate-300 text-xs px-3 py-2 rounded-xl font-medium">📋 List View</button>
+        <div id="galleryGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"></div>
+        <div id="emptyState" class="hidden py-16 text-center">
+            <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-400 text-2xl mb-3"><i class="fa-regular fa-folder-open"></i></div>
+            <h3 class="text-base font-semibold text-slate-700">Wala pang nakaupload na litrato o video</h3>
+        </div>
+    </main>
+    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
+        <p>💠BUKLOD BULI SLPA Gallery • 2026💠</p>
+    </footer>
+
+    <!-- PREVIEW MODAL -->
+    <div id="previewModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden" onclick="if(event.target===this) closePreview()">
+        <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl relative overflow-hidden">
+            <button onclick="closePreview()" class="absolute top-3 right-3 z-10 bg-black/50 hover:bg-black/70 text-white w-8 h-8 rounded-full flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+            <div id="previewContent" class="bg-black flex items-center justify-center min-h-[300px] max-h-[70vh] overflow-hidden"></div>
+            <div class="p-4">
+                <p id="previewTitle" class="text-sm font-semibold text-slate-800 truncate mb-3">File name</p>
+                <div class="flex gap-2">
+                    <a id="previewDownload" href="#" target="_blank" download class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold text-center flex items-center justify-center gap-2"><i class="fa-solid fa-download"></i> I-download</a>
+                    <button onclick="closePreview()" class="flex-1 py-2.5 border border-slate-300 rounded-xl text-xs font-semibold text-slate-600">Isara</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-800 text-white text-xs px-4 py-3 rounded-xl shadow-xl flex items-center space-x-2 z-50 transform translate-y-20 opacity-0 transition-all duration-300">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i><span id="toastMsg">Notification message</span>
+    </div>
+    <script>
+        // PALITAN MO LANG TO NG WEB APP URL MO kung iba na
+        const webAppUrl = 'https://script.google.com/macros/s/AKfycbyLyMb8L2VU4ymKjPj3tj9blXoHG1fVEr0qEVWIbnqLSGCq4u0QnGd_hrTreVWXhQJq/exec';
+        let mediaItems = [];
+        let activeFilter = 'all';
+        window.onload = function() { loadGalleryMedia(); };
+        async function loadGalleryMedia() {
+            if (!webAppUrl) return;
+            const grid = document.getElementById('galleryGrid');
+            const emptyState = document.getElementById('emptyState');
+            grid.innerHTML = '<div class="col-span-full py-12 text-center text-slate-400 font-medium text-xs"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2 text-indigo-500"></i><br>Kinukuha ang mga media...</div>';
+            try {
+                const response = await fetch(webAppUrl);
+                mediaItems = await response.json();
+                renderGallery();
+            } catch (err) {
+                grid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                showToast("Hindi maikonekta sa Google Drive.", "error");
+            }
+        }
+        function renderGallery() {
+            const grid = document.getElementById('galleryGrid');
+            const emptyState = document.getElementById('emptyState');
+            grid.innerHTML = '';
+            const filtered = mediaItems.filter(item => {
+                if (activeFilter === 'image') return item.mimeType.startsWith('image/');
+                if (activeFilter === 'video') return item.mimeType.startsWith('video/');
+                return true;
+            });
+            if (filtered.length === 0) { emptyState.classList.remove('hidden'); return; }
+            emptyState.classList.add('hidden');
+            filtered.forEach(item => {
+                const isVideo = item.mimeType.startsWith('video/');
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition group flex flex-col justify-between";
+                const mediaContainer = document.createElement('div');
+                mediaContainer.className = "relative aspect-square bg-slate-100 overflow-hidden cursor-pointer";
+                mediaContainer.onclick = function() { openPreview(item); };
+                if (isVideo) {
+                    mediaContainer.innerHTML = '<div class="w-full h-full flex items-center justify-center bg-slate-900 text-white"><i class="fa-solid fa-circle-play text-4xl opacity-80 group-hover:scale-110 transition transform"></i></div><span class="absolute top-2 right-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-md font-semibold">Video • Tap para panoorin</span>';
+                } else {
+                    mediaContainer.innerHTML = '<img src="' + item.url + '" alt="' + item.name + '" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" loading="lazy" onerror="this.src=\'https://placehold.co/400x400/e2e8f0/64748b?text=Image\'"><span class="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-md font-semibold">🔍 Preview</span>';
+                }
+                const infoBox = document.createElement('div');
+                infoBox.className = "p-3 bg-white";
+                infoBox.innerHTML = '<p class="text-xs font-semibold text-slate-800 truncate">' + (item.description || item.name) + '</p><div class="flex justify-between items-center mt-2"><button onclick="openPreviewById(\'' + item.id + '\')" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium"><i class="fa-solid fa-eye"></i> Preview</button><a href="' + item.downloadUrl + '" target="_blank" download="' + item.name + '" class="text-xs text-emerald-600 hover:text-emerald-800 font-medium"><i class="fa-solid fa-download"></i> Download</a></div>';
+                card.appendChild(mediaContainer);
+                card.appendChild(infoBox);
+                grid.appendChild(card);
+            });
+        }
+        function openPreviewById(id) {
+            const item = mediaItems.find(x => x.id === id);
+            if (item) openPreview(item);
+        }
+        function openPreview(item) {
+            const modal = document.getElementById('previewModal');
+            const content = document.getElementById('previewContent');
+            const title = document.getElementById('previewTitle');
+            const dl = document.getElementById('previewDownload');
+            const isVideo = item.mimeType.startsWith('video/');
+            title.textContent = item.description || item.name;
+            dl.href = item.downloadUrl;
+            dl.setAttribute('download', item.name);
+            if (isVideo) {
+                content.innerHTML = '<video src="' + item.downloadUrl + '" controls playsinline class="w-full max-h-[70vh] bg-black" autoplay></video>';
+            } else {
+                content.innerHTML = '<img src="' + item.url + '" alt="' + item.name + '" class="w-full h-auto max-h-[70vh] object-contain">';
+            }
+            modal.classList.remove('hidden');
+        }
+        function closePreview() {
+            const modal = document.getElementById('previewModal');
+            const content = document.getElementById('previewContent');
+            content.innerHTML = '';
+            modal.classList.add('hidden');
+        }
+        function filterMedia(type) {
+            activeFilter = type;
+            document.querySelectorAll('.filter-btn').forEach(btn => { btn.classList.remove('bg-white', 'shadow-sm', 'text-indigo-600', 'font-semibold'); btn.classList.add('text-slate-600'); });
+            if (type === 'all') document.getElementById('btnFilterAll').classList.add('bg-white', 'shadow-sm', 'text-indigo-600', 'font-semibold');
+            if (type === 'image') document.getElementById('btnFilterImage').classList.add('bg-white', 'shadow-sm', 'text-indigo-600', 'font-semibold');
+            if (type === 'video') document.getElementById('btnFilterVideo').classList.add('bg-white', 'shadow-sm', 'text-indigo-600', 'font-semibold');
+            renderGallery();
+        }
+        let isListView = false;
+        function toggleView() {
+            isListView = !isListView;
+            const grid = document.getElementById('galleryGrid');
+            const btn = document.getElementById('viewBtn');
+            if (isListView) { grid.className = "grid grid-cols-1 gap-3"; btn.innerText = "🖼️ Grid View"; }
+            else { grid.className = "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"; btn.innerText = "📋 List View"; }
+        }
+        function showToast(msg, type = "success") {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            const toastIcon = document.getElementById('toastIcon');
+            toastMsg.innerText = msg;
+            if (type === "error") { toastIcon.className = "fa-solid fa-circle-exclamation text-rose-400"; }
+            else { toastIcon.className = "fa-solid fa-circle-check text-emerald-400"; }
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3500);
+        }
+    </script>
+</body>
+</html>
