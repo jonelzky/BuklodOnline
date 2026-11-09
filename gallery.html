@@ -126,7 +126,7 @@
             dl.href = item.downloadUrl;
             dl.setAttribute('download', item.name);
             if (isVideo) {
-                content.innerHTML = '<video src="' + item.downloadUrl + '" controls playsinline class="w-full max-h-[70vh] bg-black" autoplay></video>';
+                content.innerHTML = '<iframe src="https://drive.google.com/file/d/' + item.id + '/preview" class="w-full h-[70vh] bg-black" allow="autoplay" allowfullscreen></iframe>';
             } else {
                 content.innerHTML = '<img src="' + item.url + '" alt="' + item.name + '" class="w-full h-auto max-h-[70vh] object-contain">';
             }
